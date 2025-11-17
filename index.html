@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>意愿收集与投票系统</title>
+    <style>
+        :root {
+            --primary: #6a11cb;
+            --secondary: #2575fc;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            width: 150px;
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 25px;
+            right: -75px;
+            width: 150px;
+            height: 3px;
+            background-color: #ddd;
+        }
+        
+        .step.active:not(:last-child)::after {
+            background-color: var(--primary);
+        }
+        
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            z-index: 1;
+        }
+        
+        .step.active .step-circle {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .step-text {
+            font-weight: 500;
+            color: #777;
+        }
+        
+        .step.active .step-text {
+            color: var(--primary);
+        }
+        
+        .form-container {
+            display: none;
+        }
+        
+        .form-container.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(90deg, var(--secondary), var(--primary));
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .wish-item {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 5px solid var(--primary);
+            transition: transform 0.3s;
+        }
+        
+        .wish-item:hover {
+            transform: translateX(5px);
+        }
+        
+        .wish-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .wish-title {
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .wish-votes {
+            background-color: var(--primary);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .wish-description {
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .vote-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .vote-btn:hover {
+            background-color: #3a00b0;
+        }
+        
+        .vote-btn.voted {
+            background-color: var(--success);
+        }
+        
+        .results-container {
+            margin-top: 30px;
+        }
+        
+        .results-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-align: center;
+        }
+        
+        .progress-bar {
+            height: 30px;
+            background-color: #e9ecef;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            color: white;
+            font-weight: 500;
+            transition: width 0.5s ease-in-out;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background-color: var(--success);
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transform: translateX(150%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.error {
+            background-color: var(--danger);
+        }
+        
+        @media (max-width: 600px) {
+            .step:not(:last-child)::after {
+                display: none;
+            }
+            
+            .step-indicator {
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+            }
+            
+            .step {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>意愿收集与投票系统</h1>
+            <p>提交您的意愿，并为其他人的意愿投票</p>
+        </div>
+        
+        <div class="content">
+            <div class="step-indicator">
+                <div class="step active">
+                    <div class="step-circle">1</div>
+                    <div class="step-text">提交意愿</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle">2</div>
+                    <div class="step-text">投票</div>
+                </div>
+                <div class="step">
+                    <div class="step-circle">3</div>
+                    <div class="step-text">结果</div>
+                </div>
+            </div>
+            
+            <!-- 意愿提交表单 -->
+            <div id="wish-form" class="form-container active">
+                <h2 class="form-title">提交您的意愿</h2>
+                <form id="submitWishForm">
+                    <div class="form-group">
+                        <label for="userName">您的姓名</label>
+                        <input type="text" id="userName" required placeholder="请输入您的姓名">
+                    </div>
+                    <div class="form-group">
+                        <label for="wishTitle">意愿标题</label>
+                        <input type="text" id="wishTitle" required placeholder="请简要描述您的意愿">
+                    </div>
+                    <div class="form-group">
+                        <label for="wishDescription">详细描述</label>
+                        <textarea id="wishDescription" required placeholder="请详细描述您的意愿内容"></textarea>
+                    </div>
+                    <button type="submit" class="btn">提交意愿并开始投票</button>
+                </form>
+            </div>
+            
+            <!-- 投票页面 -->
+            <div id="vote-section" class="form-container">
+                <h2 class="form-title">为其他意愿投票</h2>
+                <p style="text-align: center; margin-bottom: 20px; color: #666;">您可以为以下意愿投票（不能投给自己）</p>
+                
+                <div id="wishes-list">
+                    <!-- 意愿列表将通过JavaScript动态生成 -->
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button id="viewResults" class="btn btn-secondary">查看投票结果</button>
+                    <button id="submitAnother" class="btn btn-outline">提交另一个意愿</button>
+                </div>
+            </div>
+            
+            <!-- 结果页面 -->
+            <div id="results-section" class="form-container">
+                <h2 class="form-title">投票结果</h2>
+                
+                <div class="results-container" id="results-container">
+                    <!-- 投票结果将通过JavaScript动态生成 -->
+                </div>
+                
+                <div style="display: flex; gap: 10px;">
+                    <button id="backToVote" class="btn btn-secondary">返回投票</button>
+                    <button id="newSubmission" class="btn btn-outline">重新开始</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>意愿收集与投票系统 &copy; 2023</p>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // 使用localStorage存储数据
+        let wishes = JSON.parse(localStorage.getItem('wishes')) || [];
+        let currentUser = JSON.parse(localStorage.getItem('currentUser')) || null;
+        let userVotes = JSON.parse(localStorage.getItem('userVotes')) || [];
+        
+        // DOM 元素
+        const wishForm = document.getElementById('wish-form');
+        const voteSection = document.getElementById('vote-section');
+        const resultsSection = document.getElementById('results-section');
+        const submitWishForm = document.getElementById('submitWishForm');
+        const wishesList = document.getElementById('wishes-list');
+        const resultsContainer = document.getElementById('results-container');
+        const viewResultsBtn = document.getElementById('viewResults');
+        const backToVoteBtn = document.getElementById('backToVote');
+        const submitAnotherBtn = document.getElementById('submitAnother');
+        const newSubmissionBtn = document.getElementById('newSubmission');
+        const steps = document.querySelectorAll('.step');
+        const notification = document.getElementById('notification');
+        
+        // 初始化
+        function init() {
+            // 如果已经有当前用户，直接进入投票页面
+            if (currentUser) {
+                switchToSection('vote');
+                updateStepIndicator(2);
+            }
+            
+            renderWishesList();
+        }
+        
+        // 显示通知
+        function showNotification(message, isError = false) {
+            notification.textContent = message;
+            notification.classList.toggle('error', isError);
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 提交意愿表单
+        submitWishForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const userName = document.getElementById('userName').value;
+            const wishTitle = document.getElementById('wishTitle').value;
+            const wishDescription = document.getElementById('wishDescription').value;
+            
+            // 创建当前用户的意愿
+            currentUser = {
+                id: Date.now(), // 使用时间戳作为ID
+                userName: userName,
+                title: wishTitle,
+                description: wishDescription,
+                votes: 0
+            };
+            
+            // 保存到localStorage
+            wishes.push(currentUser);
+            localStorage.setItem('wishes', JSON.stringify(wishes));
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // 清空表单
+            submitWishForm.reset();
+            
+            // 切换到投票页面
+            switchToSection('vote');
+            updateStepIndicator(2);
+            renderWishesList();
+            
+            showNotification('您的意愿已成功提交！现在可以为其他人的意愿投票。');
+        });
+        
+        // 查看投票结果
+        viewResultsBtn.addEventListener('click', function() {
+            switchToSection('results');
+            updateStepIndicator(3);
+            renderResults();
+        });
+        
+        // 返回投票页面
+        backToVoteBtn.addEventListener('click', function() {
+            switchToSection('vote');
+            updateStepIndicator(2);
+        });
+        
+        // 提交另一个意愿
+        submitAnotherBtn.addEventListener('click', function() {
+            // 清除当前用户信息，回到初始状态
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            
+            switchToSection('wish');
+            updateStepIndicator(1);
+        });
+        
+        // 重新开始
+        newSubmissionBtn.addEventListener('click', function() {
+            // 清除所有数据
+            wishes = [];
+            currentUser = null;
+            userVotes = [];
+            localStorage.removeItem('wishes');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('userVotes');
+            
+            switchToSection('wish');
+            updateStepIndicator(1);
+            renderWishesList();
+            
+            showNotification('已重置所有数据，您可以重新开始。');
+        });
+        
+        // 渲染意愿列表
+        function renderWishesList() {
+            wishesList.innerHTML = '';
+            
+            if (wishes.length === 0 || (wishes.length === 1 && currentUser)) {
+                wishesList.innerHTML = '<p style="text-align: center; color: #666;">暂无其他意愿可投票，请稍后再查看。</p>';
+                return;
+            }
+            
+            wishes.forEach(wish => {
+                // 不显示当前用户自己的意愿
+                if (currentUser && wish.id === currentUser.id) return;
+                
+                const wishItem = document.createElement('div');
+                wishItem.className = 'wish-item';
+                wishItem.innerHTML = `
+                    <div class="wish-header">
+                        <div class="wish-title">${wish.title}</div>
+                        <div class="wish-votes">${wish.votes} 票</div>
+                    </div>
+                    <div class="wish-description">${wish.description}</div>
+                    <div style="margin-top: 10px; text-align: right;">
+                        <button class="vote-btn ${userVotes.includes(wish.id) ? 'voted' : ''}" 
+                                data-id="${wish.id}" 
+                                ${userVotes.includes(wish.id) ? 'disabled' : ''}>
+                            ${userVotes.includes(wish.id) ? '已投票' : '投票'}
+                        </button>
+                    </div>
+                    <div style="margin-top: 5px; font-size: 0.9rem; color: #777;">提交者: ${wish.userName}</div>
+                `;
+                
+                wishesList.appendChild(wishItem);
+            });
+            
+            // 添加投票事件监听器
+            document.querySelectorAll('.vote-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const wishId = parseInt(this.getAttribute('data-id'));
+                    voteForWish(wishId);
+                });
+            });
+        }
+        
+        // 投票功能
+        function voteForWish(wishId) {
+            const wish = wishes.find(w => w.id === wishId);
+            if (wish && !userVotes.includes(wishId)) {
+                wish.votes++;
+                userVotes.push(wishId);
+                
+                // 更新localStorage
+                localStorage.setItem('wishes', JSON.stringify(wishes));
+                localStorage.setItem('userVotes', JSON.stringify(userVotes));
+                
+                // 更新UI
+                renderWishesList();
+                
+                showNotification(`您已成功为"${wish.title}"投票！`);
+            }
+        }
+        
+        // 渲染投票结果
+        function renderResults() {
+            resultsContainer.innerHTML = '';
+            
+            if (wishes.length === 0) {
+                resultsContainer.innerHTML = '<p style="text-align: center; color: #666;">暂无投票数据。</p>';
+                return;
+            }
+            
+            // 按票数排序
+            const sortedWishes = [...wishes].sort((a, b) => b.votes - a.votes);
+            const maxVotes = sortedWishes[0].votes;
+            
+            sortedWishes.forEach(wish => {
+                const percentage = maxVotes > 0 ? Math.round((wish.votes / maxVotes) * 100) : 0;
+                
+                const resultItem = document.createElement('div');
+                resultItem.className = 'result-item';
+                resultItem.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>${wish.title}</span>
+                        <span>${wish.votes} 票 (${percentage}%)</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${percentage}%">
+                            ${wish.userName}
+                        </div>
+                    </div>
+                `;
+                
+                resultsContainer.appendChild(resultItem);
+            });
+        }
+        
+        // 切换页面部分
+        function switchToSection(section) {
+            wishForm.classList.remove('active');
+            voteSection.classList.remove('active');
+            resultsSection.classList.remove('active');
+            
+            if (section === 'wish') {
+                wishForm.classList.add('active');
+            } else if (section === 'vote') {
+                voteSection.classList.add('active');
+            } else if (section === 'results') {
+                resultsSection.classList.add('active');
+            }
+        }
+        
+        // 更新步骤指示器
+        function updateStepIndicator(stepNumber) {
+            steps.forEach((step, index) => {
+                if (index < stepNumber) {
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active');
+                }
+            });
+        }
+        
+        // 页面加载完成后初始化
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
